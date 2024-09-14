@@ -36,7 +36,7 @@ jobs:
         WP_USER: ${{ secrets.WP_USER }}
         WP_PASS: ${{ secrets.WP_PASS }}
         PROMO_MESSAGE: ${{ secrets.PROMO_MESSAGE }}
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        telegram_bot_token: ${{ secrets.telegram_bot_token }}
         TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
       run: |
         python main.py
