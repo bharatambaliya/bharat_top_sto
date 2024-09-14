@@ -25,8 +25,8 @@ wp_user = os.getenv('WP_USER')
 wp_pass = os.getenv('WP_PASS')
 
 # Telegram configuration
-telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-telegram_channel_id = os.getenv('TELEGRAM_CHANNEL_ID')
+telegram_bot_token = os.getenv('telegram_bot_token')
+telegram_channel_id = os.getenv('telegram_channel_id')
 bot = telegram.Bot(token=telegram_bot_token)
 
 # Initialize translator
