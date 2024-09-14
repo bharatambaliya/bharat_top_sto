@@ -9,20 +9,16 @@ import re
 import os
 import time
 
-mongo_url = os.getenv('MONGO_URL')
-if not mongo_url:
-    raise ValueError("MONGO_URL environment variable is not set")
+print(f"Python version: {sys.version}")
+print(f"Environment variables:")
+for key, value in os.environ.items():
+    if 'URL' in key or 'TOKEN' in key or 'USER' in key or 'PASS' in key:
+        print(f"{key}: {'*' * len(value)}")  # Mask sensitive values
+    else:
+        print(f"{key}: {value}")
 
-try:
-    client = MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
-    # Test the connection
-    client.admin.command('ping')
-    print("Successfully connected to MongoDB")
-    db = client['stock_news']
-    collection = db['urls']
-except Exception as e:
-    print(f"Failed to connect to MongoDB: {e}")
-    raise
+mongo_url = os.getenv('MONGO_URL')
+print(f"MONGO_URL: {'*' * len(mongo_url) if mongo_url else 'Not set'}")
 
 # WordPress configuration
 wp_url = os.getenv('wp_url')
