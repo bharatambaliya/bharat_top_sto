@@ -8,18 +8,11 @@ import base64
 import re
 import os
 import time
-import sys
 
-print(f"Python version: {sys.version}")
-print(f"Environment variables:")
-for key, value in os.environ.items():
-    if 'URL' in key or 'TOKEN' in key or 'USER' in key or 'PASS' in key:
-        print(f"{key}: {'*' * len(value)}")  # Mask sensitive values
-    else:
-        print(f"{key}: {value}")
-
-mongo_url = os.getenv('MONGO_URL')
-print(f"MONGO_URL: {'*' * len(mongo_url) if mongo_url else 'Not set'}")
+# Connect to MongoDB
+client = MongoClient(os.getenv('client'))
+db = client['stock_news']
+collection = db['urls']
 
 # WordPress configuration
 wp_url = os.getenv('wp_url')
@@ -86,7 +79,7 @@ def translate_text(text, dest_lang='gu', retries=3):
     print("Translation failed after multiple attempts. Returning original text.")
     return text
 
-def truncate_text(text, limit=4990):
+def truncate_text(text, limit=500):
     """Truncate text to a specific character limit."""
     return text[:limit] + '...' if len(text) > limit else text
 
