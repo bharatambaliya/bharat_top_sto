@@ -115,6 +115,19 @@ def truncate_text(text, limit=500):
     return text[:limit] + '...' if len(text) > limit else text
 
 
+def style_content_english_gujarati(english_text, gujarati_text):
+    """Style English and Gujarati content uniquely."""
+    styled_content = (
+        "<h2 style='color:#003366;'>🔹 English Version:</h2>"
+        f"<p>{english_text}</p>"
+        "<hr>"
+        "<h2 style='color:#FF9933;'>🔹 ગુજરાતી આવૃત્તિ:</h2>"
+        f"<p>{gujarati_text}</p>"
+        "<hr>"
+    )
+    return styled_content
+
+
 async def scrape_and_process_url(url):
     try:
         response = requests.get(url, timeout=30)
@@ -160,10 +173,15 @@ async def scrape_and_process_url(url):
         content_html = ''.join(content)
         cleaned_content_html = clean_html_content(content_html)
 
+        # Translations
         summary_gujarati = translate_text(summary_text)
         content_gujarati = translate_text(cleaned_content_html)
 
-        full_content = f"{summary_gujarati}\n\n{content_gujarati}"
+        # Combine both English and Gujarati with special styling
+        full_content = style_content_english_gujarati(
+            english_text=cleaned_content_html,
+            gujarati_text=content_gujarati
+        )
 
         post_url, post_id = create_wp_post(title_text, full_content, summary_gujarati)
 
