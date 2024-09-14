@@ -10,6 +10,8 @@ import os
 import time
 import logging
 from requests.exceptions import RequestException
+from telegram.constants import ParseMode
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -173,7 +175,7 @@ def scrape_and_process_url(url):
                 f"🔹 Stay informed with the latest stock news!"
             )
             
-            bot.send_message(chat_id=telegram_channel_id, text=telegram_message, parse_mode=telegram.ParseMode.HTML)
+            bot.send_message(chat_id=telegram_channel_id, text=telegram_message, parse_mode=ParseMode.HTML)
             
             return {
                 'title': title_text,
