@@ -9,13 +9,17 @@ import re
 import os
 import time
 
+mongo_url = os.getenv('MONGO_URL')
+if not mongo_url:
+    raise ValueError("MONGO_URL environment variable is not set")
+
 try:
-    client = MongoClient(client)
-    db = client['stock_news']
-    collection = db['urls']
+    client = MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
     # Test the connection
     client.admin.command('ping')
     print("Successfully connected to MongoDB")
+    db = client['stock_news']
+    collection = db['urls']
 except Exception as e:
     print(f"Failed to connect to MongoDB: {e}")
     raise
