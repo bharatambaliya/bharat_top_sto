@@ -87,14 +87,20 @@ def clean_html_content(content):
 
 def translate_text(text, dest_lang='gu', retries=3):
     """Translate text with retry mechanism. Fallback to original if failed."""
+    if not text:
+        logging.error("Text is None or empty, skipping translation.")
+        return text  # Return original text if it's None or empty
+    
     for attempt in range(retries):
         try:
             return translator.translate(text, dest=dest_lang).text
         except Exception as e:
             logging.warning(f"Translation failed: {e}. Retrying ({attempt + 1}/{retries})...")
             time.sleep(2)  # Wait before retrying
+    
     logging.error("Translation failed after multiple attempts. Returning original text.")
-    return text
+    return text  # Return original text if translation fails
+
 
 def truncate_text(text, limit=500):
     """Truncate text to a specific character limit."""
