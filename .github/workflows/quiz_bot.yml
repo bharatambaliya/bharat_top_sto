@@ -2,21 +2,21 @@ name: Telegram Quiz Bot
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v2
-    
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-version: 3.9
-    
+
     - name: Cache Python packages
       uses: actions/cache@v2
       with:
@@ -24,12 +24,12 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    
+
     - name: Run the script
       env:
         WP_URL: ${{ secrets.WP_URL }}
@@ -39,6 +39,5 @@ jobs:
         telegram_bot_token: ${{ secrets.telegram_bot_token }}
         TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
         client: ${{ secrets.client }}  # Correctly pass the MongoDB connection string
-
       run: |
         python main.py
