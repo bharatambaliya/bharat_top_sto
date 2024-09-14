@@ -93,45 +93,39 @@ def clean_html_content(content):
     return '\n'.join(filtered_content)
 
 
+def backup_translate_text(text, dest_lang='gu'):
+    """Backup translation using MyMemory API if the main translation fails."""
+    try:
+        response = requests.get(
+            f"https://api.mymemory.translated.net/get?q={requests.utils.quote(text)}&langpair=en|{dest_lang}"
+        )
+        response.raise_for_status()
+        data = response.json()
+        if 'responseData' in data and 'translatedText' in data['responseData']:
+            return data['responseData']['translatedText']
+        else:
+            logging.error(f"MyMemory translation failed: {data}")
+            return text  # Return original text if translation failed
+    except Exception as e:
+        logging.error(f"MyMemory translation exception: {str(e)}")
+        return text
+
+
 def translate_text(text, dest_lang='gu', retries=3):
-    """Translate text using Deep Translator with retry mechanism. Fallback to MyMemory if it fails."""
+    """Translate text using Deep Translator with a retry and backup mechanism."""
     if not text:
         logging.error("Text is None or empty, skipping translation.")
         return text  # Return original text if it's None or empty
 
-    # Primary method using GoogleTranslator
     for attempt in range(retries):
         try:
             return GoogleTranslator(source='auto', target=dest_lang).translate(text)
         except Exception as e:
-            logging.warning(f"Google Translation failed: {e}. Retrying ({attempt + 1}/{retries})...")
+            logging.warning(f"Translation failed: {e}. Retrying ({attempt + 1}/{retries})...")
             time.sleep(2)  # Wait before retrying
 
-    # If GoogleTranslator fails, fallback to MyMemory
-    logging.warning("Primary translation method failed. Switching to MyMemory API.")
-    return translate_with_mymemory(text, dest_lang)
-
-
-def translate_with_mymemory(text, target_lang):
-    """Fallback method for translation using MyMemory API."""
-    try:
-        # MyMemory API request
-        response = requests.get(
-            'https://api.mymemory.translated.net/get',
-            params={'q': text, 'langpair': f'en|{target_lang}'},
-            timeout=10
-        )
-        response.raise_for_status()
-
-        json_response = response.json()
-        if 'responseData' in json_response and 'translatedText' in json_response['responseData']:
-            return json_response['responseData']['translatedText']
-        else:
-            logging.error(f"MyMemory API failed with response: {json_response}")
-            return text  # Return original text if MyMemory fails
-    except Exception as e:
-        logging.error(f"Error with MyMemory translation: {e}")
-        return text  # Return original text if MyMemory fails
+    logging.error("Main translation failed after multiple attempts. Using backup translation.")
+    return backup_translate_text(text, dest_lang)
 
 
 def truncate_text(text, limit=500):
@@ -139,16 +133,17 @@ def truncate_text(text, limit=500):
     return text[:limit] + '...' if len(text) > limit else text
 
 
-def style_content_paragraph_by_paragraph(english_text, gujarati_text):
-    """Ensure that for each paragraph, Gujarati appears directly below the English content."""
-    english_paragraphs = english_text.split("\n")
-    gujarati_paragraphs = gujarati_text.split("\n")
+def format_content_with_translation(title, content, content_gujarati):
+    """Format content with original text and its Gujarati translation."""
+    formatted_content = f"<h2>{title}</h2>\n\n"
+    content_lines = content.split("\n")
+    gujarati_lines = content_gujarati.split("\n")
 
-    combined_content = ""
-    for eng, guj in zip(english_paragraphs, gujarati_paragraphs):
-        combined_content += f"<p>{eng}</p>\n<p style='color: #FF9933;'>{guj}</p>\n"
+    for eng, guj in zip(content_lines, gujarati_lines):
+        if eng.strip():
+            formatted_content += f"<p>{eng}</p>\n<p>{guj}</p>\n"
 
-    return combined_content
+    return formatted_content
 
 
 async def scrape_and_process_url(url):
@@ -196,15 +191,11 @@ async def scrape_and_process_url(url):
         content_html = ''.join(content)
         cleaned_content_html = clean_html_content(content_html)
 
-        # Translations
         summary_gujarati = translate_text(summary_text)
         content_gujarati = translate_text(cleaned_content_html)
 
-        # Combine both English and Gujarati for each paragraph
-        full_content = style_content_paragraph_by_paragraph(
-            english_text=cleaned_content_html,
-            gujarati_text=content_gujarati
-        )
+        # Format the post with original and translated content
+        full_content = format_content_with_translation(title_text, cleaned_content_html, content_gujarati)
 
         post_url, post_id = create_wp_post(title_text, full_content, summary_gujarati)
 
