@@ -4,4 +4,4 @@ pymongo
 python-telegram-bot
 html2text
 dnspython
-deep_translator
+deep-translator
