@@ -38,5 +38,7 @@ jobs:
         PROMO_MESSAGE: ${{ secrets.PROMO_MESSAGE }}
         telegram_bot_token: ${{ secrets.telegram_bot_token }}
         TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        client: ${{ secrets.client }}  # Correctly pass the MongoDB connection string
+
       run: |
         python main.py
