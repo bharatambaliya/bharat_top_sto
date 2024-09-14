@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
-from googletrans import Translator
+from deep_translator import GoogleTranslator  # Use GoogleTranslator from deep_translator
 import telegram
 import html2text
 import base64
@@ -29,8 +29,8 @@ telegram_bot_token = os.getenv('telegram_bot_token')
 telegram_channel_id = os.getenv('telegram_channel_id')
 bot = telegram.Bot(token=telegram_bot_token)
 
-# Initialize translator
-translator = Translator()
+# Initialize translator (use GoogleTranslator from deep_translator)
+translator = GoogleTranslator(source='en', target='gu')  # Set source and target languages
 
 # Promotional message
 promo_message = os.getenv('promo_message')
@@ -85,22 +85,21 @@ def clean_html_content(content):
     
     return '\n'.join(filtered_content)
 
-def translate_text(text, dest_lang='gu', retries=3):
-    """Translate text with retry mechanism. Fallback to original if failed."""
+def translate_text(text, retries=3):
+    """Translate text with retry mechanism using deep_translator."""
     if not text:
         logging.error("Text is None or empty, skipping translation.")
         return text  # Return original text if it's None or empty
     
     for attempt in range(retries):
         try:
-            return translator.translate(text, dest=dest_lang).text
+            return translator.translate(text)  # Using deep_translator's translate function
         except Exception as e:
             logging.warning(f"Translation failed: {e}. Retrying ({attempt + 1}/{retries})...")
             time.sleep(2)  # Wait before retrying
     
     logging.error("Translation failed after multiple attempts. Returning original text.")
     return text  # Return original text if translation fails
-
 
 def truncate_text(text, limit=500):
     """Truncate text to a specific character limit."""
@@ -222,14 +221,11 @@ def main():
                         else:
                             logging.info(f"URL already processed: {target_url}")
             else:
-                logging.warning("Listview div not found in the main section")
+                logging.warning("Listview div not found in the main section.")
         else:
-            logging.warning("Main section not found on the page")
-
+            logging.warning("Main section not found in the page.")
     except Exception as e:
-        logging.error(f"Error in main scraping process: {str(e)}")
+        logging.error(f"Error fetching the main page: {str(e)}")
 
-    logging.info("Finished scraping and processing new articles.")
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
