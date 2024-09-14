@@ -10,7 +10,7 @@ import os
 import time
 
 try:
-    client = MongoClient(mongo_url)
+    client = MongoClient(client)
     db = client['stock_news']
     collection = db['urls']
     # Test the connection
