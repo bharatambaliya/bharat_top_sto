@@ -8,6 +8,7 @@ import base64
 import re
 import os
 import time
+import sys
 
 print(f"Python version: {sys.version}")
 print(f"Environment variables:")
