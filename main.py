@@ -9,11 +9,16 @@ import re
 import os
 import time
 
-# Connect to MongoDB
-mongo_url = os.getenv('MONGO_URL')  # Use 'MONGO_URL' or whatever you named the secret
-client = MongoClient(mongo_url)
-db = client['stock_news']
-collection = db['urls']
+try:
+    client = MongoClient(mongo_url)
+    db = client['stock_news']
+    collection = db['urls']
+    # Test the connection
+    client.admin.command('ping')
+    print("Successfully connected to MongoDB")
+except Exception as e:
+    print(f"Failed to connect to MongoDB: {e}")
+    raise
 
 # WordPress configuration
 wp_url = os.getenv('wp_url')
