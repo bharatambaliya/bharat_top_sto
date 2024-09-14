@@ -10,7 +10,8 @@ import os
 import time
 
 # Connect to MongoDB
-client = MongoClient(os.getenv('client'))
+mongo_url = os.getenv('MONGO_URL')  # Use 'MONGO_URL' or whatever you named the secret
+client = MongoClient(mongo_url)
 db = client['stock_news']
 collection = db['urls']
 
