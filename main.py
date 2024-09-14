@@ -20,9 +20,9 @@ db = client['stock_news']
 collection = db['urls']
 
 # WordPress configuration
-wp_url = os.getenv('WP_URL')
-wp_user = os.getenv('WP_USER')
-wp_pass = os.getenv('WP_PASS')
+wp_url = os.getenv('wp_url')
+wp_user = os.getenv('wp_user')
+wp_pass = os.getenv('wp_pass')
 
 # Telegram configuration
 telegram_bot_token = os.getenv('telegram_bot_token')
