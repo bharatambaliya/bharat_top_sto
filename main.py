@@ -134,14 +134,14 @@ def truncate_text(text, limit=500):
 
 
 def format_content_with_translation(title, content, content_gujarati):
-    """Format content with original text and its Gujarati translation."""
+    """Format content with English and Gujarati text paragraph by paragraph."""
     formatted_content = f"<h2>{title}</h2>\n\n"
     content_lines = content.split("\n")
     gujarati_lines = content_gujarati.split("\n")
 
     for eng, guj in zip(content_lines, gujarati_lines):
-        if eng.strip():
-            formatted_content += f"<p>{eng}</p>\n<p>{guj}</p>\n"
+        if eng.strip() and guj.strip():
+            formatted_content += f"<p>{eng}</p>\n<p><i>{guj}</i></p>\n"
 
     return formatted_content
 
