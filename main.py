@@ -144,7 +144,7 @@ async def scrape_and_process_url(url):
         content = []
         for div in content_div.find_all('div', id=lambda x: x and x.startswith('article-index-')):
             for element in div.descendants:
-                if element.name in ['h2', 'h3', 'h4', 'p']:
+                if element.name:
                     manualbacklink = element.find('a', class_='manualbacklink')
                     if manualbacklink:
                         bold_parent = manualbacklink.find_parent('b')
