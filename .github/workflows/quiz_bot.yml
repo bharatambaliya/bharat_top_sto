@@ -33,12 +33,12 @@ jobs:
 
     - name: Run the script
       env:
-        WP_URL: ${{ secrets.WP_URL }}
-        WP_USER: ${{ secrets.WP_USER }}
-        WP_PASS: ${{ secrets.WP_PASS }}
-        PROMO_MESSAGE: ${{ secrets.PROMO_MESSAGE }}
+        wp_url: ${{ secrets.wp_url }}
+        wp_user: ${{ secrets.wp_user }}
+        wp_pass: ${{ secrets.wp_pass }}
+        promo_message: ${{ secrets.promo_message }}
         telegram_bot_token: ${{ secrets.telegram_bot_token }}
-        TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        telegram_channel_id: ${{ secrets.telegram_channel_id }}
         client: ${{ secrets.client }}  # Correctly pass the MongoDB connection string
       run: |
         python main.py
