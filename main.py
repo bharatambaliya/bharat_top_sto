@@ -15,7 +15,7 @@ from requests.exceptions import RequestException
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Connect to MongoDB
-client = MongoClient(os.getenv('MONGODB_URI'))
+client = MongoClient(os.getenv('client'))
 db = client['stock_news']
 collection = db['urls']
 
