@@ -1,17 +1,17 @@
 import requests
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
-from deep_translator import GoogleTranslator  # Use GoogleTranslator from deep_translator
+from deep_translator import GoogleTranslator
 import telegram
+from telegram.constants import ParseMode
 import html2text
 import base64
 import re
 import os
 import time
 import logging
+import asyncio
 from requests.exceptions import RequestException
-from telegram.constants import ParseMode
-
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -31,16 +31,20 @@ telegram_bot_token = os.getenv('telegram_bot_token')
 telegram_channel_id = os.getenv('telegram_channel_id')
 bot = telegram.Bot(token=telegram_bot_token)
 
-# Initialize translator (use GoogleTranslator from deep_translator)
-translator = GoogleTranslator(source='en', target='gu')  # Set source and target languages
-
 # Promotional message
 promo_message = os.getenv('promo_message')
+
 
 def get_wp_token():
     credentials = f"{wp_user}:{wp_pass}"
     token = base64.b64encode(credentials.encode())
     return {'Authorization': f'Basic {token.decode("utf-8")}'}
+
+
+async def send_telegram_message(chat_id, text):
+    """Send a message using the Telegram bot."""
+    await bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML)
+
 
 def create_wp_post(title, content, excerpt, max_retries=3, delay=5):
     headers = get_wp_token()
@@ -52,26 +56,27 @@ def create_wp_post(title, content, excerpt, max_retries=3, delay=5):
         'status': 'publish',
         'categories': [4]  # Stock News category ID
     }
-    
+
     for attempt in range(max_retries):
         try:
             response = requests.post(f"{wp_url}/posts", headers=headers, json=data, timeout=30)
             response.raise_for_status()
-            
+
             if response.status_code == 201:
                 return response.json()['link'], response.json()['id']
             else:
                 logging.warning(f"Unexpected status code: {response.status_code}")
                 logging.warning(f"Response content: {response.text[:500]}...")
-        
+
         except RequestException as e:
             logging.error(f"Request failed on attempt {attempt + 1}: {str(e)}")
-        
+
         if attempt < max_retries - 1:
             time.sleep(delay * (2 ** attempt))  # Exponential backoff
-    
+
     logging.error(f"Failed to create WordPress post after {max_retries} attempts.")
     return None, None
+
 
 def clean_html_content(content):
     """Remove empty tags and filter out duplicate content."""
@@ -84,55 +89,58 @@ def clean_html_content(content):
         if normalized_line not in seen_lines and normalized_line:
             filtered_content.append(line)
             seen_lines.add(normalized_line)
-    
+
     return '\n'.join(filtered_content)
 
-def translate_text(text, retries=3):
-    """Translate text with retry mechanism using deep_translator."""
+
+def translate_text(text, dest_lang='gu', retries=3):
+    """Translate text using Deep Translator with retry mechanism."""
     if not text:
         logging.error("Text is None or empty, skipping translation.")
         return text  # Return original text if it's None or empty
-    
+
     for attempt in range(retries):
         try:
-            return translator.translate(text)  # Using deep_translator's translate function
+            return GoogleTranslator(source='auto', target=dest_lang).translate(text)
         except Exception as e:
             logging.warning(f"Translation failed: {e}. Retrying ({attempt + 1}/{retries})...")
             time.sleep(2)  # Wait before retrying
-    
+
     logging.error("Translation failed after multiple attempts. Returning original text.")
     return text  # Return original text if translation fails
+
 
 def truncate_text(text, limit=500):
     """Truncate text to a specific character limit."""
     return text[:limit] + '...' if len(text) > limit else text
 
-def scrape_and_process_url(url):
+
+async def scrape_and_process_url(url):
     try:
         response = requests.get(url, timeout=30)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-        
+
         content_classes = ["storyPage_storyBox__zPlkE", "storyPage_storyContent__m_MYl", "your_other_class_name"]
         content_div = None
         for class_name in content_classes:
             content_div = soup.find('div', class_=class_name)
             if content_div:
                 break
-        
+
         if not content_div:
             logging.warning(f"Main content div not found for URL: {url}")
             return None
-        
+
         title = content_div.find('h1', id="article-0")
         if not title:
             logging.warning(f"Title not found for URL: {url}")
             return None
         title_text = title.get_text(strip=True)
-        
+
         summary = content_div.find('h2', class_="storyPage_summary__Ge5SX")
         summary_text = summary.get_text(strip=True) if summary else ""
-        
+
         content = []
         for div in content_div.find_all('div', id=lambda x: x and x.startswith('article-index-')):
             for element in div.descendants:
@@ -148,24 +156,24 @@ def scrape_and_process_url(url):
                         for link in element.find_all('a'):
                             link.unwrap()
                         content.append(str(element))
-        
+
         content_html = ''.join(content)
         cleaned_content_html = clean_html_content(content_html)
-        
+
         summary_gujarati = translate_text(summary_text)
         content_gujarati = translate_text(cleaned_content_html)
-        
+
         full_content = f"{summary_gujarati}\n\n{content_gujarati}"
-        
+
         post_url, post_id = create_wp_post(title_text, full_content, summary_gujarati)
-        
+
         if post_url and post_id:
             h = html2text.HTML2Text()
             h.ignore_links = True
             plain_content = h.handle(cleaned_content_html)
             truncated_content = truncate_text(plain_content)
             summary_translated = translate_text(truncated_content)
-            
+
             telegram_message = (
                 f"🔷 <b>{title_text}</b>\n\n"
                 f"📄 <i>{summary_translated}</i>\n\n"
@@ -174,9 +182,9 @@ def scrape_and_process_url(url):
                 f"🔹 Follow us for more updates!\n"
                 f"🔹 Stay informed with the latest stock news!"
             )
-            
-            bot.send_message(chat_id=telegram_channel_id, text=telegram_message, parse_mode=ParseMode.HTML)
-            
+
+            await send_telegram_message(chat_id=telegram_channel_id, text=telegram_message)
+
             return {
                 'title': title_text,
                 'content': cleaned_content_html,
@@ -191,7 +199,8 @@ def scrape_and_process_url(url):
         logging.error(f"Error processing URL {url}: {str(e)}")
         return None
 
-def main():
+
+async def main():
     base_url = "https://www.livemint.com/"
     scrape_url = "https://www.livemint.com/market/stock-market-news"
 
@@ -216,7 +225,7 @@ def main():
                             target_url = base_url + target_url.lstrip('/')
 
                         if not collection.find_one({'url': target_url}):
-                            article_data = scrape_and_process_url(target_url)
+                            article_data = await scrape_and_process_url(target_url)
                             if article_data:
                                 collection.insert_one(article_data)
                                 logging.info(f"Processed and inserted new URL: {target_url}")
@@ -227,7 +236,8 @@ def main():
         else:
             logging.warning("Main section not found in the page.")
     except Exception as e:
-        logging.error(f"Error fetching the main page: {str(e)}")
+        logging.error(f"Error scraping URL {scrape_url}: {str(e)}")
+
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
