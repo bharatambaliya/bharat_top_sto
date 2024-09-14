@@ -33,7 +33,7 @@ bot = telegram.Bot(token=telegram_bot_token)
 translator = Translator()
 
 # Promotional message
-promo_message = os.getenv('PROMO_MESSAGE')
+promo_message = os.getenv('promo_message')
 
 def get_wp_token():
     credentials = f"{wp_user}:{wp_pass}"
