@@ -34,14 +34,17 @@ bot = telegram.Bot(token=telegram_bot_token)
 # Promotional message
 promo_message = os.getenv('promo_message')
 
+
 def get_wp_token():
     credentials = f"{wp_user}:{wp_pass}"
     token = base64.b64encode(credentials.encode())
     return {'Authorization': f'Basic {token.decode("utf-8")}'}
 
+
 async def send_telegram_message(chat_id, text):
     """Send a message using the Telegram bot."""
     await bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML)
+
 
 def create_wp_post(title, content, excerpt, max_retries=3, delay=5):
     headers = get_wp_token()
@@ -74,6 +77,7 @@ def create_wp_post(title, content, excerpt, max_retries=3, delay=5):
     logging.error(f"Failed to create WordPress post after {max_retries} attempts.")
     return None, None
 
+
 def clean_html_content(content):
     """Remove empty tags and filter out duplicate content."""
     cleaned_content = re.sub(r'<(?!br)(\w+)([^>]*)>\s*</\1>', '', content)
@@ -88,31 +92,50 @@ def clean_html_content(content):
 
     return '\n'.join(filtered_content)
 
-def backup_translation(text, dest_lang='gu'):
-    """Backup translation method in case the primary one fails."""
-    # You can implement any backup translation service here. As an example, we're using a simple manual fallback.
-    # Currently, the backup just returns the original text, but you could implement another API call or use a local translation dictionary.
-    return text  # Fallback to original text for now
 
-def translate_text(text, dest_lang='gu', retries=3):
-    """Translate text using Deep Translator with a backup method."""
+def translate_with_method_1(text, dest_lang='gu'):
+    """Primary translation method using GoogleTranslator from deep_translator."""
+    return GoogleTranslator(source='auto', target=dest_lang).translate(text)
+
+
+def translate_with_method_2(text, dest_lang='gu'):
+    """Secondary translation method (e.g., another API). Placeholder for now."""
+    # Placeholder for secondary translation service
+    # In real usage, replace this with another translation API or service
+    return GoogleTranslator(source='auto', target=dest_lang).translate(text)
+
+
+def translate_text_with_two_methods(text, dest_lang='gu'):
+    """Try two translation methods. Return original text if both fail."""
     if not text:
         logging.error("Text is None or empty, skipping translation.")
-        return text  # Return original text if it's None or empty
+        return text
 
-    for attempt in range(retries):
-        try:
-            return GoogleTranslator(source='auto', target=dest_lang).translate(text)
-        except Exception as e:
-            logging.warning(f"Translation failed: {e}. Retrying ({attempt + 1}/{retries})...")
-            time.sleep(2)  # Wait before retrying
+    # Try the first translation method
+    try:
+        translated_text = translate_with_method_1(text, dest_lang)
+        if translated_text:
+            return translated_text
+    except Exception as e:
+        logging.warning(f"Primary translation method failed: {e}")
 
-    logging.error("Translation failed after multiple attempts. Using backup translation.")
-    return backup_translation(text, dest_lang)  # Fallback to backup translation
+    # Try the second translation method
+    try:
+        translated_text = translate_with_method_2(text, dest_lang)
+        if translated_text:
+            return translated_text
+    except Exception as e:
+        logging.warning(f"Secondary translation method failed: {e}")
+
+    # If both methods fail, return the original text
+    logging.error("Both translation methods failed. Returning original text.")
+    return text
+
 
 def truncate_text(text, limit=500):
     """Truncate text to a specific character limit."""
     return text[:limit] + '...' if len(text) > limit else text
+
 
 async def scrape_and_process_url(url):
     try:
@@ -159,13 +182,19 @@ async def scrape_and_process_url(url):
         content_html = ''.join(content)
         cleaned_content_html = clean_html_content(content_html)
 
-        # Translate both summary and content
-        summary_gujarati = translate_text(summary_text)
-        content_gujarati = translate_text(cleaned_content_html)
+        # Use the two translation methods and fallback to original if both fail
+        summary_gujarati = translate_text_with_two_methods(summary_text)
+        content_gujarati = translate_text_with_two_methods(cleaned_content_html)
 
-        # Combine Gujarati and English content in the final format
-        full_content = f"{summary_gujarati}\n\n{summary_text}\n\n{content_gujarati}\n\n{cleaned_content_html}"
+        # Check if translation failed (i.e., original content was returned)
+        if summary_gujarati == summary_text and content_gujarati == cleaned_content_html:
+            # If translation fails, only include original content without duplication
+            full_content = f"{cleaned_content_html}"
+        else:
+            # Otherwise, include both translated and original content for readability
+            full_content = f"{summary_gujarati}\n\n{content_gujarati}\n\n<h2>Original Content:</h2>\n{cleaned_content_html}"
 
+        # Create WordPress post
         post_url, post_id = create_wp_post(title_text, full_content, summary_gujarati)
 
         if post_url and post_id:
@@ -173,7 +202,7 @@ async def scrape_and_process_url(url):
             h.ignore_links = True
             plain_content = h.handle(cleaned_content_html)
             truncated_content = truncate_text(plain_content)
-            summary_translated = translate_text(truncated_content)
+            summary_translated = translate_text_with_two_methods(truncated_content)
 
             telegram_message = (
                 f"🔷 <b>{title_text}</b>\n\n"
@@ -184,8 +213,10 @@ async def scrape_and_process_url(url):
                 f"🔹 Stay informed with the latest stock news!"
             )
 
+            # Send Telegram message
             await send_telegram_message(chat_id=telegram_channel_id, text=telegram_message)
 
+            # Return data to insert into MongoDB
             return {
                 'title': title_text,
                 'content': cleaned_content_html,
@@ -199,6 +230,7 @@ async def scrape_and_process_url(url):
     except Exception as e:
         logging.error(f"Error processing URL {url}: {str(e)}")
         return None
+
 
 async def main():
     base_url = "https://www.livemint.com/"
@@ -237,6 +269,7 @@ async def main():
             logging.warning("Main section not found in the page.")
     except Exception as e:
         logging.error(f"Error scraping URL {scrape_url}: {str(e)}")
+
 
 if __name__ == '__main__':
     asyncio.run(main())
