@@ -209,10 +209,11 @@ async def scrape_and_process_url(url):
             telegram_message = (
                 f"🔷 <b>{title_text}</b>\n\n"
                 f"📄 <i>{summary_english}</i>\n\n"
-                f"📌 <b>વધુ વાંચવા માટે અહીં ક્લિક કરો:</b> <a href='{post_url}'>🖱️ {post_url}</a>\n\n"
+                f"📌 <b>સંપુર્ણ આર્તિકલ અંગ્રેજી અને ગુજરાતી બન્ને ભાષામાં વાંચવા માટે અહીં ક્લિક કરો:</b> <a href='{post_url}'>🖱️ {post_url}</a>\n\n"
                 f"💼 {promo_message}\n\n"
                 f"🔹 Follow us for more updates!\n"
                 f"🔹 Stay informed with the latest stock news!"
+                f"🔹 Join Our Telegram Channel :- @DalalStreetGujarati "
             )
 
             # Send Telegram message
