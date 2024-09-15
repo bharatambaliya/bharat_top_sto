@@ -202,11 +202,13 @@ async def scrape_and_process_url(url):
             h.ignore_links = True
             plain_content = h.handle(cleaned_content_html)
             truncated_content = truncate_text(plain_content)
-            summary_translated = translate_text_with_two_methods(truncated_content)
+
+            # Send English summary in Telegram instead of Gujarati content
+            summary_english = truncate_text(summary_text)
 
             telegram_message = (
                 f"🔷 <b>{title_text}</b>\n\n"
-                f"📄 <i>{summary_translated}</i>\n\n"
+                f"📄 <i>{summary_english}</i>\n\n"
                 f"📌 <b>વધુ વાંચવા માટે અહીં ક્લિક કરો:</b> <a href='{post_url}'>🖱️ {post_url}</a>\n\n"
                 f"💼 {promo_message}\n\n"
                 f"🔹 Follow us for more updates!\n"
